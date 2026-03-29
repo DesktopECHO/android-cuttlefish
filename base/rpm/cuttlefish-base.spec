@@ -110,7 +110,14 @@ case "%{_arch}" in
 esac
 
 pushd base/cvd
-DISABLE_BAZEL_WRAPPER=yes USE_BAZEL_VERSION=8.5.1 bazel build -c opt \
+# Use a local output_base so that stale Bazel repo/action caches from
+# previous builds (in ~/.cache/bazel/) cannot interfere.  The rpmbuild
+# BUILD directory is cleaned between runs, guaranteeing a fresh state.
+# Place it outside the Bazel workspace (base/cvd/) to avoid glob issues.
+BAZEL_OUTPUT_BASE="$(realpath "$PWD/..")/.bazel_output"
+mkdir -p "$BAZEL_OUTPUT_BASE"
+DISABLE_BAZEL_WRAPPER=yes USE_BAZEL_VERSION=8.5.1 \
+  bazel --output_base="$BAZEL_OUTPUT_BASE" build -c opt \
   'cuttlefish/package:cvd' \
   'cuttlefish/package:defaults' \
   'cuttlefish/package:metrics' \
