@@ -86,7 +86,7 @@ crosvm_bin.annotation(
 crosvm_bin.annotation(
     crate = "minijail-sys",
     build_script_data = ["@@//:minijail_sources"],
-    build_script_rundir = "external/+_repo_rules6+crosvm/third_party/minijail",
+    build_script_rundir = ".",
     patch_args = ["-p1"],
     # crates_universe checks out only a subdirectory of the repository, so the
     # file paths in this patch are relative to that directory.

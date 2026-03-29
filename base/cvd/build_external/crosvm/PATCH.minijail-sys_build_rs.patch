@@ -1,22 +1,51 @@
 diff --git a/build.rs b/build.rs
-index 51ddb56..f43ce71 100644
+index 51ddb56..a1b2c3d 100644
 --- a/build.rs
 +++ b/build.rs
-@@ -59,7 +59,7 @@ fn set_up_libminijail() -> io::Result<PathBuf> {
+@@ -20,6 +20,27 @@ fn cargo_env<T: AsRef<str>>(name: T) -> String {
+     env::var(name.as_ref()).unwrap()
+ }
+ 
++fn find_minijail_root() -> io::Result<PathBuf> {
++    // With build_script_rundir=".", cwd is the Bazel exec root.
++    // The minijail sources live under the crosvm repo checkout whose
++    // canonical name may vary between Bazel versions (e.g.
++    // +_repo_rules6+crosvm, +_repo_rules2+crosvm, etc.).
++    // Scan external/ to find it dynamically.
++    let cwd = env::current_dir()?;
++    let external = cwd.join("external");
++    if external.is_dir() {
++        for entry in std::fs::read_dir(&external)? {
++            let candidate = entry?.path().join("third_party/minijail");
++            if candidate.join("Makefile").exists()
++                && candidate.join("libminijail.h").exists()
++            {
++                return Ok(candidate);
++            }
++        }
++    }
++    Err(io::Error::new(io::ErrorKind::NotFound,
++        "could not locate minijail root under external/*/third_party/minijail"))
++}
++
+ fn set_up_libminijail() -> io::Result<PathBuf> {
+     if env::var("CARGO_CFG_WINDOWS").is_ok() {
+         println!("cargo:rustc-link-lib=static=minijail");
+@@ -59,7 +80,7 @@ fn set_up_libminijail() -> io::Result<PathBuf> {
      }
  
      if env::var("MINIJAIL_DO_NOT_BUILD").as_deref().unwrap_or("") == "" {
 -        let current_dir = env::var("CARGO_MANIFEST_DIR").unwrap() + "/../..";
-+        let current_dir = env::current_dir().unwrap();
++        let current_dir = find_minijail_root()?;
          let out_dir = env::var("OUT_DIR").unwrap();
          let profile = env::var("PROFILE").unwrap();
          let jobs = env::var("JOBS").unwrap_or("4".to_string());
-@@ -82,7 +82,7 @@ fn set_up_libminijail() -> io::Result<PathBuf> {
+@@ -82,7 +103,7 @@ fn set_up_libminijail() -> io::Result<PathBuf> {
          println!("cargo:rustc-link-lib=static=minijail.pic");
      }
  
 -    let header_dir = Path::new("../../");
-+    let header_dir = env::current_dir().unwrap();
++    let header_dir = find_minijail_root()?;
      let header_path = header_dir.join(HEADER_FILENAME);
      Ok(header_path)
  }
