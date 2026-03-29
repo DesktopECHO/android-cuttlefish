@@ -110,7 +110,7 @@ case "%{_arch}" in
 esac
 
 pushd base/cvd
-DISABLE_BAZEL_WRAPPER=yes USE_BAZEL_VERSION=9.0.1 bazel build -c opt \
+DISABLE_BAZEL_WRAPPER=yes USE_BAZEL_VERSION=8.5.1 bazel build -c opt \
   'cuttlefish/package:cvd' \
   'cuttlefish/package:defaults' \
   'cuttlefish/package:metrics' \
