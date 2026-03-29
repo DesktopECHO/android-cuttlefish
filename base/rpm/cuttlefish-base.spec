@@ -137,6 +137,8 @@ cp -a base/cvd/bazel-out/${bazel_arch}-opt/bin/cuttlefish/package/cuttlefish-met
 
 rm -rf %{buildroot}/usr/lib/cuttlefish-common/bin/cvd.repo_mapping
 rm -rf %{buildroot}/usr/lib/cuttlefish-common/bin/cvd.runfiles*
+rm -rf %{buildroot}/usr/lib/cuttlefish-common/bin/crosvm.repo_mapping
+rm -rf %{buildroot}/usr/lib/cuttlefish-common/bin/crosvm.runfiles*
 rm -rf %{buildroot}/usr/bin/defaults.repo_mapping
 rm -rf %{buildroot}/usr/bin/defaults.runfiles*
 rm -rf %{buildroot}/usr/lib/cuttlefish-metrics/bin/metrics_transmitter.repo_mapping
