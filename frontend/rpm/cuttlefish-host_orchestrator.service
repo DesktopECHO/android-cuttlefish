@@ -7,9 +7,10 @@ Wants=network-online.target
 Type=simple
 User=httpcvd
 Group=httpcvd
+SupplementaryGroups=cvdnetwork kvm video render
 EnvironmentFile=-/etc/sysconfig/cuttlefish-host_orchestrator
 WorkingDirectory=/usr/share/cuttlefish-common/operator
-ExecStartPre=/usr/libexec/cuttlefish/cuttlefish-host_orchestrator-prepare
+ExecStartPre=+/usr/libexec/cuttlefish/cuttlefish-host_orchestrator-prepare
 ExecStart=/usr/libexec/cuttlefish/cuttlefish-host_orchestrator
 Restart=on-failure
 

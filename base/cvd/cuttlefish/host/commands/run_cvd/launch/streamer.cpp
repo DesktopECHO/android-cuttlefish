@@ -52,6 +52,8 @@ namespace cuttlefish {
 
 namespace {
 
+constexpr char kDefaultWebRtcOperatorSocket[] = "/run/cuttlefish/operator";
+
 SharedFD CreateUnixInputServer(const std::string& path) {
   auto server =
       SharedFD::SocketLocalServer(path.c_str(), false, SOCK_STREAM, 0666);
@@ -232,6 +234,13 @@ class WebRtcServer : public virtual CommandSource,
   Result<std::vector<MonitorCommand>> Commands() override {
     std::vector<MonitorCommand> commands;
 
+    if (config_.sig_server_address() == kDefaultWebRtcOperatorSocket) {
+      Command webrtc_operator(WebRtcSigServerBinary());
+      // webrtc_operator resolves cert assets relative to usr/share.
+      webrtc_operator.SetWorkingDirectory(DefaultHostArtifactsPath("usr/share"));
+      commands.emplace_back(std::move(webrtc_operator));
+    }
+
     // Start a TCP proxy to make the host signaling server available on the
     // legacy port.
     Command sig_proxy(WebRtcSigServerProxyBinary());
@@ -315,4 +324,3 @@ launchStreamerComponent() {
 }
 
 }  // namespace cuttlefish
-

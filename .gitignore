@@ -1,0 +1,4 @@
+private_*/
+rpmbuild/
+aosp/
+base/cvd/MODULE.bazel.lock

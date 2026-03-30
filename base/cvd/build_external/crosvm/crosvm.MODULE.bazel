@@ -69,6 +69,11 @@ crosvm_bin.annotation(
         # Disable the build script from trying to automatically locate
         # Gfxstream as the dep is directly provided above.
         "CARGO_FEATURE_GFXSTREAM_STUB": "blah",
+        # Force rutabaga_gfx to use the system virglrenderer package instead of
+        # expecting crosvm's third_party/virglrenderer source checkout.
+        "CROSVM_USE_SYSTEM_VIRGLRENDERER": "1",
+        # Required by rutabaga_gfx when using system virglrenderer.
+        "CROSVM_USE_SYSTEM_MINIGBM": "1",
     },
 )
 

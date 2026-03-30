@@ -17,6 +17,15 @@ function check_service_started() {
   systemctl is-active "${service}"
 }
 
+function maybe_check_service_started() {
+  local service="$1"
+  if systemctl is-enabled --quiet "${service}"; then
+    check_service_started "${service}"
+  else
+    echo "Skipping service check for ${service}; service is not enabled"
+  fi
+}
+
 function load_kernel_modules() {
         echo "Loading kernel modules"
         sudo modprobe "$@"
@@ -70,7 +79,7 @@ fi
 
 install_pkgs "${PKG_DIR}" cuttlefish-base cuttlefish-metrics cuttlefish-user
 
-check_service_started cuttlefish-host-resources
+maybe_check_service_started cuttlefish-host-resources
 load_kernel_modules kvm vhost-vsock vhost-net bridge
 grant_device_access vhost-vsock vhost-net kvm
 check_service_started cuttlefish-operator

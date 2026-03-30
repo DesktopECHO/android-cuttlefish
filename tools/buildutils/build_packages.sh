@@ -38,6 +38,7 @@ function install_rpm_build_dependencies() {
     protobuf-compiler \
     protobuf-devel \
     python3 \
+    mesa-libgbm-devel \
     virglrenderer-devel \
     wayland-devel \
     which \
@@ -63,7 +64,6 @@ BUILD_PACKAGE="$(dirname "$0")/build_package.sh"
 install_rpm_build_dependencies
 command -v bazel >/dev/null 2>&1 || sudo "${INSTALL_BAZEL}"
 
-"${BUILD_PACKAGE}" "${REPO_DIR}/base" "$@"
-"${BUILD_PACKAGE}" "${REPO_DIR}/frontend" "$@"
-"${BUILD_PACKAGE}" "${REPO_DIR}/container" "$@"
-"${BUILD_PACKAGE}" "${REPO_DIR}/cuttlefish-integration-gigabyte-arm64" "$@"
+# Builds all RPM specs under base/rpm and frontend/rpm unless excluded.
+"${BUILD_PACKAGE}" "$@" "${REPO_DIR}/base"
+"${BUILD_PACKAGE}" "$@" "${REPO_DIR}/frontend"

@@ -7,9 +7,10 @@ Wants=network-online.target
 Type=simple
 User=_cutf-operator
 Group=cvdnetwork
+SupplementaryGroups=video render
 EnvironmentFile=-/etc/sysconfig/cuttlefish-operator
 WorkingDirectory=/usr/share/cuttlefish-common/operator
-ExecStartPre=/usr/libexec/cuttlefish/cuttlefish-operator-prepare
+ExecStartPre=+/usr/libexec/cuttlefish/cuttlefish-operator-prepare
 ExecStart=/usr/libexec/cuttlefish/cuttlefish-operator
 Restart=on-failure
 

@@ -5,6 +5,7 @@ Summary:        Frontend and orchestration packages for Cuttlefish on Fedora
 License:        Apache-2.0
 URL:            https://github.com/google/android-cuttlefish
 Source0:        android-cuttlefish-%{version}.tar.gz
+%undefine _debugsource_packages
 
 BuildRequires:  curl
 BuildRequires:  git
@@ -77,13 +78,15 @@ install -Dpm0755 frontend/rpm/cuttlefish-host_orchestrator-prepare.sh %{buildroo
 install -Dpm0644 frontend/rpm/cuttlefish-host_orchestrator.sysconfig %{buildroot}/etc/sysconfig/cuttlefish-host_orchestrator
 install -Dpm0644 frontend/host/packages/cuttlefish-orchestration/etc/nginx/sites-available/cuttlefish-orchestration.conf %{buildroot}/etc/nginx/conf.d/cuttlefish-orchestration.conf
 
-ln -s /usr/lib/cuttlefish-common/bin/host_orchestrator %{buildroot}/usr/bin/cvd_host_orchestrator
-ln -s /usr/lib/cuttlefish-common/bin/cvd %{buildroot}/usr/bin/fetch_cvd
+mkdir -p %{buildroot}/usr/bin
+ln -sfn ../lib/cuttlefish-common/bin/host_orchestrator %{buildroot}/usr/bin/cvd_host_orchestrator
+ln -sfn ../lib/cuttlefish-common/bin/cvd %{buildroot}/usr/bin/fetch_cvd
 
 %post -n cuttlefish-user
 if ! getent passwd _cutf-operator >/dev/null 2>&1; then
   useradd -r -M -d /var/empty -g cvdnetwork _cutf-operator >/dev/null 2>&1 || :
 fi
+usermod -a -G video,render _cutf-operator >/dev/null 2>&1 || :
 systemctl daemon-reload >/dev/null 2>&1 || :
 systemctl enable --now cuttlefish-operator.service >/dev/null 2>&1 || :
 
@@ -91,9 +94,8 @@ systemctl enable --now cuttlefish-operator.service >/dev/null 2>&1 || :
 if ! getent passwd httpcvd >/dev/null 2>&1; then
   useradd -r -M -d /var/empty httpcvd >/dev/null 2>&1 || :
 fi
-usermod -a -G cvdnetwork,kvm httpcvd >/dev/null 2>&1 || :
+usermod -a -G cvdnetwork,kvm,video,render httpcvd >/dev/null 2>&1 || :
 systemctl daemon-reload >/dev/null 2>&1 || :
-systemctl enable --now cuttlefish-host_orchestrator.service >/dev/null 2>&1 || :
 
 %preun -n cuttlefish-user
 if [ $1 -eq 0 ]; then
