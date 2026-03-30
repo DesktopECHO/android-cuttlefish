@@ -1,9 +1,9 @@
 diff --git a/build.rs b/build.rs
-index 51ddb56..a1b2c3d 100644
+index 51ddb56..0971b95 100644
 --- a/build.rs
 +++ b/build.rs
-@@ -20,6 +20,27 @@ fn cargo_env<T: AsRef<str>>(name: T) -> String {
-     env::var(name.as_ref()).unwrap()
+@@ -47,6 +47,28 @@ fn get_cross_compile_prefix() -> String {
+     return format!("{}-{}-{}-", arch, os, env);
  }
  
 +fn find_minijail_root() -> io::Result<PathBuf> {
@@ -29,9 +29,9 @@ index 51ddb56..a1b2c3d 100644
 +}
 +
  fn set_up_libminijail() -> io::Result<PathBuf> {
-     if env::var("CARGO_CFG_WINDOWS").is_ok() {
-         println!("cargo:rustc-link-lib=static=minijail");
-@@ -59,7 +80,7 @@ fn set_up_libminijail() -> io::Result<PathBuf> {
+     // Prefer a system-provided Minijail library.
+     if let Ok(info) = pkg_config::Config::new().probe("libminijail") {
+@@ -59,7 +81,7 @@ fn set_up_libminijail() -> io::Result<PathBuf> {
      }
  
      if env::var("MINIJAIL_DO_NOT_BUILD").as_deref().unwrap_or("") == "" {
@@ -40,7 +40,7 @@ index 51ddb56..a1b2c3d 100644
          let out_dir = env::var("OUT_DIR").unwrap();
          let profile = env::var("PROFILE").unwrap();
          let jobs = env::var("JOBS").unwrap_or("4".to_string());
-@@ -82,7 +103,7 @@ fn set_up_libminijail() -> io::Result<PathBuf> {
+@@ -82,7 +104,7 @@ fn set_up_libminijail() -> io::Result<PathBuf> {
          println!("cargo:rustc-link-lib=static=minijail.pic");
      }
  
