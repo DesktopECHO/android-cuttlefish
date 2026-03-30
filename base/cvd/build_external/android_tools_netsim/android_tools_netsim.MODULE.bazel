@@ -89,15 +89,6 @@ netsim_crates.from_cargo(
     name = "netsim_crates",
     manifests = [
         "@android_tools_netsim//:rust/Cargo.toml",
-        "@android_tools_netsim//:rust/capture/Cargo.toml",
-        "@android_tools_netsim//:rust/cli/Cargo.toml",
-        "@android_tools_netsim//:rust/common/Cargo.toml",
-        "@android_tools_netsim//:rust/daemon/Cargo.toml",
-        "@android_tools_netsim//:rust/hostapd-rs/Cargo.toml",
-        "@android_tools_netsim//:rust/http-proxy/Cargo.toml",
-        "@android_tools_netsim//:rust/libslirp-rs/Cargo.toml",
-        "@android_tools_netsim//:rust/packets/Cargo.toml",
-        "@android_tools_netsim//:rust/proto/Cargo.toml",
     ],
     # Needed because it shares the extension with crosvm
     cargo_config = "@//build_external/crosvm:crosvm.config.toml",
