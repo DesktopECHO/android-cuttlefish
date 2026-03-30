@@ -36,6 +36,7 @@ crosvm_bin.spec(
         "net",
         "qcow",
         "usb",
+        "virgl_renderer",
     ],
     # TODO: schuffelen - fix the sandbox
     git = CROSVM_REMOTE,

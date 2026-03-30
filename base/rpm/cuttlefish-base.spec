@@ -31,6 +31,7 @@ BuildRequires:  protobuf-compiler
 BuildRequires:  protobuf-devel
 BuildRequires:  python3
 BuildRequires:  systemd-rpm-macros
+BuildRequires:  virglrenderer-devel
 BuildRequires:  wayland-devel
 BuildRequires:  which
 BuildRequires:  xxd
@@ -116,12 +117,19 @@ pushd base/cvd
 # Place it outside the Bazel workspace (base/cvd/) to avoid glob issues.
 BAZEL_OUTPUT_BASE="$(realpath "$PWD/..")/.bazel_output"
 mkdir -p "$BAZEL_OUTPUT_BASE"
+# Point TMPDIR into the build tree so that cargo-bazel workspace splicing
+# (crate_universe) creates its temp symlinks here instead of /tmp, avoiding
+# quota-exceeded errors on size- or inode-limited filesystems.
+BAZEL_TMPDIR="$BAZEL_OUTPUT_BASE/tmp"
+mkdir -p "$BAZEL_TMPDIR"
+export TMPDIR="$BAZEL_TMPDIR"
 DISABLE_BAZEL_WRAPPER=yes USE_BAZEL_VERSION=8.5.1 \
   bazel --output_base="$BAZEL_OUTPUT_BASE" build -c opt \
   'cuttlefish/package:cvd' \
   'cuttlefish/package:defaults' \
   'cuttlefish/package:metrics' \
   --spawn_strategy=local \
+  --repo_env=TMPDIR="$BAZEL_TMPDIR" \
   --workspace_status_command=../stamp_helper.sh \
   --build_tag_filters=-clang-tidy
 popd

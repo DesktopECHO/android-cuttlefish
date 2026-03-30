@@ -38,6 +38,7 @@ function install_rpm_build_dependencies() {
     protobuf-compiler \
     protobuf-devel \
     python3 \
+    virglrenderer-devel \
     wayland-devel \
     which \
     xxd \
