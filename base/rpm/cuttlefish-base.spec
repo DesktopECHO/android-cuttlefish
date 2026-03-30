@@ -31,6 +31,7 @@ BuildRequires:  protobuf-compiler
 BuildRequires:  protobuf-devel
 BuildRequires:  python3
 BuildRequires:  systemd-rpm-macros
+BuildRequires:  virglrenderer-devel
 BuildRequires:  wayland-devel
 BuildRequires:  which
 BuildRequires:  xxd
