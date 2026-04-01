@@ -64,6 +64,7 @@ Recommends:     ebtables
 Requires(post): /usr/sbin/groupadd
 Requires(post): /usr/sbin/usermod
 Requires(post): /usr/sbin/setcap
+Requires(post): /usr/sbin/sysctl
 Requires(post): /usr/bin/systemctl
 Requires(preun): /usr/bin/systemctl
 Requires(postun): /usr/bin/systemctl
@@ -207,6 +208,7 @@ find %{buildroot}/usr/lib/cuttlefish-common/usr/share/webrtc/assets -type f -exe
 install -Dpm0755 base/host/deploy/capability_query.py %{buildroot}/usr/lib/cuttlefish-common/bin/capability_query.py
 install -Dpm0755 tools/acvd %{buildroot}/bin/acvd
 install -Dpm0644 base/host/packages/cuttlefish-base/etc/NetworkManager/conf.d/99-cuttlefish.conf %{buildroot}/etc/NetworkManager/conf.d/99-cuttlefish.conf
+install -Dpm0644 base/rpm/99-cuttlefish.conf %{buildroot}/etc/sysctl.d/99-cuttlefish.conf
 install -Dpm0644 base/host/packages/cuttlefish-base/etc/modules-load.d/cuttlefish-common.conf %{buildroot}/etc/modules-load.d/cuttlefish-common.conf
 install -Dpm0644 base/host/packages/cuttlefish-base/etc/security/limits.d/1_cuttlefish.conf %{buildroot}/etc/security/limits.d/1_cuttlefish.conf
 install -Dpm0755 base/rpm/cuttlefish-ulimit.sh %{buildroot}/etc/profile.d/cuttlefish-ulimit.sh
@@ -247,6 +249,7 @@ if ! getent group kvm >/dev/null 2>&1; then
 fi
 mkdir -p /var/empty
 setcap cap_net_admin,cap_net_bind_service,cap_net_raw=+ep /usr/lib/cuttlefish-common/bin/cvdalloc >/dev/null 2>&1 || :
+/usr/sbin/sysctl --system >/dev/null 2>&1 || :
 /usr/libexec/cuttlefish/cuttlefish-add-user-to-groups || :
 udevadm control --reload >/dev/null 2>&1 || :
 systemctl daemon-reload >/dev/null 2>&1 || :
@@ -295,6 +298,7 @@ systemctl daemon-reload >/dev/null 2>&1 || :
 /usr/bin/cvd
 /usr/lib/cuttlefish-common
 /etc/NetworkManager/conf.d/99-cuttlefish.conf
+%config(noreplace) /etc/sysctl.d/99-cuttlefish.conf
 /etc/modules-load.d/cuttlefish-common.conf
 /etc/profile.d/cuttlefish-ulimit.sh
 /etc/security/limits.d/1_cuttlefish.conf

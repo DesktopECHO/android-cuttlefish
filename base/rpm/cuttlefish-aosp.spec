@@ -106,14 +106,6 @@ find %{buildroot}/usr/share/cuttlefish-common/aosp ! -type l -exec chmod g=u '{}
 /usr/share/cuttlefish-common/aosp
 
 %post
-for overlay_path in bin etc lib64; do
-  src="/usr/lib/cuttlefish-common/${overlay_path}"
-  dest="/usr/share/cuttlefish-common/aosp/${overlay_path}"
-  if [ -d "${src}" ]; then
-    install -d "${dest}"
-    cp -a --remove-destination "${src}/." "${dest}/"
-  fi
-done
 setcap cap_net_admin,cap_net_bind_service,cap_net_raw=+ep /usr/share/cuttlefish-common/aosp/bin/cvdalloc >/dev/null 2>&1 || :
 
 %changelog
