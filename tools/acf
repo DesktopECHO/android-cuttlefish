@@ -4,15 +4,17 @@ set -euo pipefail
 
 exec 3>&1
 
-LOG_FILE="/tmp/acvd.log"
+LOG_FILE="/tmp/acf.log"
 mkdir -p "$(dirname "${LOG_FILE}")"
 : > "${LOG_FILE}"
 exec >"${LOG_FILE}" 2>&1
 
 # Editable defaults
-CVD_HOME_DIR="/usr/share/cuttlefish-common/aosp"
-CVD_BIN="/usr/lib/cuttlefish-common/bin/cvd_internal_start"
-CVD_CLI_BIN="/usr/lib/cuttlefish-common/bin/cvd"
+CVD_HOST_OUT="${ANDROID_HOST_OUT:-/usr/lib/cuttlefish-common}"
+CVD_PRODUCT_OUT="${ANDROID_PRODUCT_OUT:-/usr/share/cuttlefish-common/aosp}"
+: "${CVD_HOME_DIR:=${CVD_PRODUCT_OUT}}"
+CVD_BIN="${CVD_HOST_OUT}/bin/cvd_internal_start"
+CVD_CLI_BIN="${CVD_HOST_OUT}/bin/cvd"
 CVD_CPUS="4"
 CVD_MEMORY_MB="4096"
 CVD_GPU_MODE="gfxstream"
@@ -20,7 +22,13 @@ CVD_GPU_VHOST_USER_MODE="off"
 CVD_ENABLE_GPU_UDMABUF="true"
 CVD_USE_CVDALLOC="true"
 CVD_VHOST_NET="true"
-CVD_ENABLE_WIFI="true"
+CVD_VHOST_USER_VSOCK="false"
+CVD_ENABLE_WIFI="false"
+CVD_ENABLE_HOST_BLUETOOTH="true"
+CVD_NETSIM="false"
+CVD_NETSIM_BT="false"
+CVD_ENABLE_HOST_UWB="false"
+CVD_NETSIM_UWB="false"
 CVD_X_RES="1920"
 CVD_Y_RES="1200"
 CVD_DPI="220"
@@ -29,7 +37,6 @@ CVD_BOOT_MESSAGE="Virtual device booted successfully"
 CVD_BOOT_TIMEOUT_SEC="90"
 CVD_START_SCRCPY_TIMEOUT_SEC="45"
 
-CVD_IMAGE_DIR="${CVD_HOME_DIR}"
 SCRIPT_NAME="$(basename "$0")"
 
 log() {
@@ -63,12 +70,41 @@ Notes:
   - Extra arguments after 'startfs' are passed directly to cvd_internal_start.
   - Extra arguments after 'stop' are passed directly to cvd stop.
   - Extra arguments after 'restart' are passed directly to cvd_internal_start.
+  - Common radio/network overrides:
+      --enable_wifi=<true|false>
+      --enable_host_bluetooth=<true|false>
+      --netsim=<true|false>
+      --netsim_bt=<true|false>
+      --enable_host_uwb=<true|false>
+      --netsim_uwb=<true|false>
+  - Current defaults use the host Bluetooth path and disable Wi-Fi/OpenWRT,
+    netsim, and UWB:
+      --enable_wifi=false
+      --enable_host_bluetooth=true
+      --netsim=false
+      --netsim_bt=false
+      --enable_host_uwb=false
+      --netsim_uwb=false
 
 EOF
 }
 
 shell_join() {
   printf '%q ' "$@"
+}
+
+user_supplied_flag() {
+  local flag="$1"
+  shift
+  local arg
+  for arg in "$@"; do
+    case "${arg}" in
+      "--${flag}"|"--${flag}="*|"-${flag}"|"-${flag}="*)
+        return 0
+        ;;
+    esac
+  done
+  return 1
 }
 
 require_executable() {
@@ -202,9 +238,9 @@ has_live_cvd_processes() {
   local -a patterns=(
     "${CVD_HOME_DIR}/cuttlefish/instances"
     "${CVD_HOME_DIR}/cvd-1"
-    "${CVD_IMAGE_DIR}/bin/run_cvd"
-    "${CVD_IMAGE_DIR}/bin/crosvm"
-    "${CVD_IMAGE_DIR}/bin/process_restarter"
+    "${CVD_HOST_OUT}/bin/run_cvd"
+    "${CVD_HOST_OUT}/bin/crosvm"
+    "${CVD_HOST_OUT}/bin/process_restarter"
     "${CVD_BIN}"
   )
   local pattern
@@ -222,12 +258,12 @@ cleanup_user_processes() {
   local -a patterns=(
     "${CVD_HOME_DIR}/cuttlefish/instances"
     "${CVD_HOME_DIR}/cvd-1"
-    "${CVD_IMAGE_DIR}/bin/run_cvd"
-    "${CVD_IMAGE_DIR}/bin/crosvm"
-    "${CVD_IMAGE_DIR}/bin/process_restarter"
-    "${CVD_IMAGE_DIR}/bin/socket_vsock_proxy"
-    "${CVD_IMAGE_DIR}/bin/wmediumd"
-    "${CVD_IMAGE_DIR}/bin/webRTC"
+    "${CVD_HOST_OUT}/bin/run_cvd"
+    "${CVD_HOST_OUT}/bin/crosvm"
+    "${CVD_HOST_OUT}/bin/process_restarter"
+    "${CVD_HOST_OUT}/bin/socket_vsock_proxy"
+    "${CVD_HOST_OUT}/bin/wmediumd"
+    "${CVD_HOST_OUT}/bin/webRTC"
   )
   local -a pids=()
   local pattern
@@ -342,20 +378,7 @@ maybe_start_scrcpy() {
 start_cvd() {
   local fullscreen_mode="${1:-false}"
   shift || true
-  local -a args=(
-    "--cpus=${CVD_CPUS}"
-    "--memory_mb=${CVD_MEMORY_MB}"
-    "--gpu_mode=${CVD_GPU_MODE}"
-    "--gpu_vhost_user_mode=${CVD_GPU_VHOST_USER_MODE}"
-    "--enable_gpu_udmabuf=${CVD_ENABLE_GPU_UDMABUF}"
-    "--use_cvdalloc=${CVD_USE_CVDALLOC}"
-    "--vhost_net=${CVD_VHOST_NET}"
-    "--enable_wifi=${CVD_ENABLE_WIFI}"
-    "--x_res=${CVD_X_RES}"
-    "--y_res=${CVD_Y_RES}"
-    "--dpi=${CVD_DPI}"
-    "-report_anonymous_usage_stats=${CVD_REPORT_USAGE_STATS}"
-  )
+  local -a args=()
   local launcher_log
   local adb_serial
   local boot_deadline
@@ -377,18 +400,78 @@ start_cvd() {
     return 0
   fi
 
+  if ! user_supplied_flag "cpus" "$@"; then
+    args+=("--cpus=${CVD_CPUS}")
+  fi
+  if ! user_supplied_flag "memory_mb" "$@"; then
+    args+=("--memory_mb=${CVD_MEMORY_MB}")
+  fi
+  if ! user_supplied_flag "gpu_mode" "$@"; then
+    args+=("--gpu_mode=${CVD_GPU_MODE}")
+  fi
+  if ! user_supplied_flag "gpu_vhost_user_mode" "$@"; then
+    args+=("--gpu_vhost_user_mode=${CVD_GPU_VHOST_USER_MODE}")
+  fi
+  if ! user_supplied_flag "enable_gpu_udmabuf" "$@"; then
+    args+=("--enable_gpu_udmabuf=${CVD_ENABLE_GPU_UDMABUF}")
+  fi
+  if ! user_supplied_flag "use_cvdalloc" "$@"; then
+    args+=("--use_cvdalloc=${CVD_USE_CVDALLOC}")
+  fi
+  if ! user_supplied_flag "vhost_net" "$@"; then
+    args+=("--vhost_net=${CVD_VHOST_NET}")
+  fi
+  if ! user_supplied_flag "vhost_user_vsock" "$@"; then
+    args+=("--vhost_user_vsock=${CVD_VHOST_USER_VSOCK}")
+  fi
+  if ! user_supplied_flag "enable_wifi" "$@"; then
+    args+=("--enable_wifi=${CVD_ENABLE_WIFI}")
+  fi
+  if ! user_supplied_flag "enable_host_bluetooth" "$@"; then
+    args+=("--enable_host_bluetooth=${CVD_ENABLE_HOST_BLUETOOTH}")
+  fi
+  if ! user_supplied_flag "netsim" "$@"; then
+    args+=("--netsim=${CVD_NETSIM}")
+  fi
+  if ! user_supplied_flag "netsim_bt" "$@"; then
+    args+=("--netsim_bt=${CVD_NETSIM_BT}")
+  fi
+  if ! user_supplied_flag "enable_host_uwb" "$@"; then
+    args+=("--enable_host_uwb=${CVD_ENABLE_HOST_UWB}")
+  fi
+  if ! user_supplied_flag "netsim_uwb" "$@"; then
+    args+=("--netsim_uwb=${CVD_NETSIM_UWB}")
+  fi
+  if ! user_supplied_flag "x_res" "$@"; then
+    args+=("--x_res=${CVD_X_RES}")
+  fi
+  if ! user_supplied_flag "y_res" "$@"; then
+    args+=("--y_res=${CVD_Y_RES}")
+  fi
+  if ! user_supplied_flag "dpi" "$@"; then
+    args+=("--dpi=${CVD_DPI}")
+  fi
+  if ! user_supplied_flag "report_anonymous_usage_stats" "$@"; then
+    args+=("-report_anonymous_usage_stats=${CVD_REPORT_USAGE_STATS}")
+  fi
+
   args+=("$@")
 
   log "starting Cuttlefish"
   log "HOME=${CVD_HOME_DIR}"
+  log "ANDROID_HOST_OUT=${CVD_HOST_OUT}"
+  log "ANDROID_PRODUCT_OUT=${CVD_PRODUCT_OUT}"
   log "gpu_mode=${CVD_GPU_MODE}"
   log "launcher_log=${launcher_log}"
   log "launch command: $(shell_join "${CVD_BIN}" "${args[@]}")"
 
   (
-    cd "${CVD_IMAGE_DIR}"
+    cd "${CVD_PRODUCT_OUT}"
     env \
       HOME="${CVD_HOME_DIR}" \
+      ANDROID_HOST_OUT="${CVD_HOST_OUT}" \
+      ANDROID_SOONG_HOST_OUT="${CVD_HOST_OUT}" \
+      ANDROID_PRODUCT_OUT="${CVD_PRODUCT_OUT}" \
       "${CVD_BIN}" "${args[@]}"
   ) &
 
@@ -412,8 +495,18 @@ stop_cvd() {
   require_executable "${CVD_CLI_BIN}" "cvd CLI"
 
   log "stopping Cuttlefish"
-  env HOME="${CVD_HOME_DIR}" "${CVD_CLI_BIN}" stop --clear_instance_dirs "$@" || true
-  env HOME="${CVD_HOME_DIR}" "${CVD_CLI_BIN}" clear >/dev/null 2>&1 || true
+  env \
+    HOME="${CVD_HOME_DIR}" \
+    ANDROID_HOST_OUT="${CVD_HOST_OUT}" \
+    ANDROID_SOONG_HOST_OUT="${CVD_HOST_OUT}" \
+    ANDROID_PRODUCT_OUT="${CVD_PRODUCT_OUT}" \
+    "${CVD_CLI_BIN}" stop --clear_instance_dirs "$@" || true
+  env \
+    HOME="${CVD_HOME_DIR}" \
+    ANDROID_HOST_OUT="${CVD_HOST_OUT}" \
+    ANDROID_SOONG_HOST_OUT="${CVD_HOST_OUT}" \
+    ANDROID_PRODUCT_OUT="${CVD_PRODUCT_OUT}" \
+    "${CVD_CLI_BIN}" clear >/dev/null 2>&1 || true
   cleanup_user_processes
   respond "Android virtual device stopped"
 }

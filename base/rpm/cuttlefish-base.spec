@@ -146,7 +146,7 @@ mkdir -p "$BAZEL_TMPDIR"
 export TMPDIR="$BAZEL_TMPDIR"
 
 retry_count=0
-max_retries=3
+max_retries=9
 retry_delay=60
 while true; do
   if DISABLE_BAZEL_WRAPPER=yes USE_BAZEL_VERSION=8.5.1 \
@@ -206,7 +206,7 @@ find %{buildroot}/usr/lib/cuttlefish-common/etc -type f -exec chmod -x '{}' ';'
 find %{buildroot}/usr/lib/cuttlefish-common/usr/share/webrtc/assets -type f -exec chmod -x '{}' ';'
 
 install -Dpm0755 base/host/deploy/capability_query.py %{buildroot}/usr/lib/cuttlefish-common/bin/capability_query.py
-install -Dpm0755 tools/acvd %{buildroot}/bin/acvd
+install -Dpm0755 tools/acf %{buildroot}/bin/acf
 install -Dpm0644 base/host/packages/cuttlefish-base/etc/NetworkManager/conf.d/99-cuttlefish.conf %{buildroot}/etc/NetworkManager/conf.d/99-cuttlefish.conf
 install -Dpm0644 base/rpm/99-cuttlefish.conf %{buildroot}/etc/sysctl.d/99-cuttlefish.conf
 install -Dpm0644 base/host/packages/cuttlefish-base/etc/modules-load.d/cuttlefish-common.conf %{buildroot}/etc/modules-load.d/cuttlefish-common.conf
@@ -259,18 +259,29 @@ systemctl disable --now cuttlefish-host-resources.service >/dev/null 2>&1 || :
 systemctl enable --now cuttlefish-host-resources.service >/dev/null 2>&1 || :
 %endif
 required_nofile=524288
+required_rtprio=10
 current_soft_nofile="$(ulimit -Sn 2>/dev/null || echo 0)"
 current_hard_nofile="$(ulimit -Hn 2>/dev/null || echo 0)"
+current_soft_rtprio="$(ulimit -Sr 2>/dev/null || echo 0)"
+current_hard_rtprio="$(ulimit -Hr 2>/dev/null || echo 0)"
 case "$current_soft_nofile" in
   unlimited) current_soft_nofile="$required_nofile" ;;
 esac
 case "$current_hard_nofile" in
   unlimited) current_hard_nofile="$required_nofile" ;;
 esac
+case "$current_soft_rtprio" in
+  unlimited) current_soft_rtprio="$required_rtprio" ;;
+esac
+case "$current_hard_rtprio" in
+  unlimited) current_hard_rtprio="$required_rtprio" ;;
+esac
 if [ "${current_soft_nofile:-0}" -lt "$required_nofile" ] || \
-   [ "${current_hard_nofile:-0}" -lt "$required_nofile" ]; then
-  echo "Cuttlefish installed nofile=524288 for @cvdnetwork in /etc/security/limits.d/1_cuttlefish.conf." >&2
-  echo "A new login session may be required before 'ulimit -n' reflects the higher limit." >&2
+   [ "${current_hard_nofile:-0}" -lt "$required_nofile" ] || \
+   [ "${current_soft_rtprio:-0}" -lt "$required_rtprio" ] || \
+   [ "${current_hard_rtprio:-0}" -lt "$required_rtprio" ]; then
+  echo "Cuttlefish installed nofile=524288 and rtprio=10 for @cvdnetwork in /etc/security/limits.d/1_cuttlefish.conf." >&2
+  echo "A new login session may be required before 'ulimit -n' and 'ulimit -r' reflect the higher limits." >&2
 fi
 
 %post -n cuttlefish-defaults
@@ -294,7 +305,7 @@ systemctl daemon-reload >/dev/null 2>&1 || :
 
 %files
 %license LICENSE
-/bin/acvd
+/bin/acf
 /usr/bin/cvd
 /usr/lib/cuttlefish-common
 /etc/NetworkManager/conf.d/99-cuttlefish.conf

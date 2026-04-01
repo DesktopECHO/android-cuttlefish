@@ -67,6 +67,7 @@ done
 }
 
 readonly INPUT_PATH="${input_path}"
+readonly INPUT_PATH_ABS="$(realpath "${INPUT_PATH}")"
 
 readonly REPO_DIR="$(realpath "$(dirname "$0")/../..")"
 readonly VERSION_FILE="${REPO_DIR}/packaging/VERSION"
@@ -163,17 +164,17 @@ refresh_source_tarball_if_needed
 declare -a specs
 declare -a pushd_args
 
-if [[ -f "${INPUT_PATH}" && "${INPUT_PATH}" == *.spec ]]; then
-  if should_exclude_spec "${INPUT_PATH}"; then
-    echo "Skipping excluded spec $(basename "${INPUT_PATH}")"
+if [[ -f "${INPUT_PATH_ABS}" && "${INPUT_PATH_ABS}" == *.spec ]]; then
+  if should_exclude_spec "${INPUT_PATH_ABS}"; then
+    echo "Skipping excluded spec $(basename "${INPUT_PATH_ABS}")"
     exit 0
   fi
-  specs=("$(realpath "${INPUT_PATH}")")
+  specs=("${INPUT_PATH_ABS}")
   pushd_args=("$(dirname "${specs[0]}")")
-elif [[ -d "${INPUT_PATH}/rpm" ]]; then
-  specs=("${INPUT_PATH}"/rpm/*.spec)
+elif [[ -d "${INPUT_PATH_ABS}/rpm" ]]; then
+  specs=("${INPUT_PATH_ABS}"/rpm/*.spec)
   if [[ ${#specs[@]} -eq 0 ]]; then
-    >&2 echo "no spec files found under ${INPUT_PATH}/rpm"
+    >&2 echo "no spec files found under ${INPUT_PATH_ABS}/rpm"
     exit 1
   fi
   if [[ ${#excluded_specs[@]} -gt 0 ]]; then
@@ -188,12 +189,12 @@ elif [[ -d "${INPUT_PATH}/rpm" ]]; then
     specs=("${filtered_specs[@]}")
   fi
   if [[ ${#specs[@]} -eq 0 ]]; then
-    echo "No RPM specs left to build under ${INPUT_PATH}/rpm after exclusions"
+    echo "No RPM specs left to build under ${INPUT_PATH_ABS}/rpm after exclusions"
     exit 0
   fi
-  pushd_args=("${INPUT_PATH}")
+  pushd_args=("${INPUT_PATH_ABS}")
 else
-  >&2 echo "missing rpm directory under ${INPUT_PATH}, or input is not a .spec file"
+  >&2 echo "missing rpm directory under ${INPUT_PATH_ABS}, or input is not a .spec file"
   exit 1
 fi
 

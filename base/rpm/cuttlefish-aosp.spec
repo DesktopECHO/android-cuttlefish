@@ -41,7 +41,7 @@ mkdir -p "$BAZEL_TMPDIR"
 export TMPDIR="$BAZEL_TMPDIR"
 
 retry_count=0
-max_retries=3
+max_retries=9
 retry_delay=60
 while true; do
   if DISABLE_BAZEL_WRAPPER=yes USE_BAZEL_VERSION=8.5.1 \
